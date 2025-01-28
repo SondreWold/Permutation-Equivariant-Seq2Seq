@@ -6,7 +6,7 @@ import os
 import torch
 import torch.nn as nn
 from pathlib import Path
-    import numpy as np
+import numpy as np
 
 import perm_equivariant_seq2seq.utils as utils
 from perm_equivariant_seq2seq.equivariant_models import EquiSeq2Seq
@@ -94,7 +94,7 @@ parser.add_argument('--print_freq',
                     help='Frequency with which to print training loss')
 parser.add_argument('--save_freq', 
                     type=int, 
-                    default=200000, 
+                    default=1000, 
                     help='Frequency with which to save models during training')
 parser.add_argument('--train_path',
                     type=Path,
@@ -106,7 +106,7 @@ parser.add_argument('--val_path',
 args = parser.parse_args()
 
 if args.train_path and args.val_path:
-    save_str = str(args.train_path.stem)
+    save_str = str(args.train_path.stem) + f"_{args.seed}"
 else:
     save_str = args.split
 
@@ -234,7 +234,7 @@ def test_accuracy(model_to_test, pairs):
 if __name__ == '__main__':
     torch.manual_seed(args.seed)
     random.seed(args.seed)
-    np.seed(args.seed)
+    np.random.seed(args.seed)
     # Load data
     if args.train_path and args.val_path:
         train_pairs, test_pairs = read_custom_data(args.train_path, args.val_path)
