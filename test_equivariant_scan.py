@@ -280,7 +280,7 @@ if __name__ == '__main__':
 
     # Move model to device and load weights
     model.to(device)
-    model.load_state_dict(torch.load(model_path))
+    model.load_state_dict(torch.load(model_path, map_location=torch.device('cpu')))
 
     # Convert data to torch tensors
     training_eval = [tensors_from_pair(pair, equivariant_commands, equivariant_actions) 
