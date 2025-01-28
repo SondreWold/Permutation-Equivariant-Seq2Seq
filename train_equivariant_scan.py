@@ -6,7 +6,9 @@ import os
 import torch
 import torch.nn as nn
 from pathlib import Path
+from tqdm import tqdm
 import numpy as np
+import wandb
 
 import perm_equivariant_seq2seq.utils as utils
 from perm_equivariant_seq2seq.equivariant_models import EquiSeq2Seq
@@ -101,6 +103,9 @@ parser.add_argument('--train_path',
                     )
 parser.add_argument('--val_path',
                     type=Path,
+                    )
+parser.add_argument('--wandb',
+                    type=str,
                     )
  
 args = parser.parse_args()
@@ -312,11 +317,24 @@ if __name__ == '__main__':
     plot_losses = []
     print_loss_total = 0
     plot_loss_total = 0
+    wandb_config = {
+            "train_path": str(args.train_path),
+            "val_path": str(args.val_path),
+            "seed": args.seed,
+            "layer_type": args.layer_type,
+            "equvariance": args.equivariance,
+            "attention": args.use_attention,
+            "bidirectional": args.bidirectional,
+            "learning_rate": args.learning_rate,
+            "iters": args.n_iters
+            }
+    wandb.init(project=args.wandb, config=wandb_config)
 
     # Enter training loop
     best_acc = 0.
     model_path = utils.create_exp_dir(args)
-    for iteration, pair_batch in enumerate(pair_generator(training_pairs, args.batch_size)):
+    print("Started training...")
+    for iteration, pair_batch in tqdm(enumerate(pair_generator(training_pairs, args.batch_size))):
         # Compute loss (and take one gradient step)
         loss = train(batch=pair_batch,
                      model_to_train=model,
@@ -331,6 +349,7 @@ if __name__ == '__main__':
         # Print, plot, etc'
         if (iteration + 1) % args.print_freq == 0:
             print_loss_avg = print_loss_total / args.print_freq
+            wandb.log({"train_loss": print_loss_avg})
             print_loss_total = 0
             print('%s iterations: %s' % (iteration + 1, print_loss_avg))
 
@@ -338,6 +357,7 @@ if __name__ == '__main__':
             # save model if is better
             if args.validation_size > 0.:
                 val_acc = test_accuracy(model, validation_pairs).item()
+                wandb.log({"val_acc": val_acc})
                 if val_acc > best_acc:
                     best_acc = val_acc
                     save_path = os.path.join(model_path, 'best_validation.pt')
