@@ -326,7 +326,8 @@ if __name__ == '__main__':
             "attention": args.use_attention,
             "bidirectional": args.bidirectional,
             "learning_rate": args.learning_rate,
-            "iters": args.n_iters
+            "iters": args.n_iters,
+            "hidden_size": args.hidden_size
             }
     wandb.init(project=args.wandb, config=wandb_config)
 

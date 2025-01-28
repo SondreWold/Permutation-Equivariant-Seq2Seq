@@ -6,6 +6,8 @@ import os
 import numpy as np
 import torch
 from pathlib import Path
+from tqdm import tqdm
+import wandb
 
 import perm_equivariant_seq2seq.utils as utils
 from perm_equivariant_seq2seq.equivariant_models import EquiSeq2Seq
@@ -30,6 +32,14 @@ parser.add_argument('--best_validation',
                     default=False, 
                     action='store_true',
                     help="Boolean indicating whether to use best validation model")
+parser.add_argument("--entropy_level",
+                    type=str,
+                    default="not_set",
+                    help="Entropy level")
+parser.add_argument("--size",
+                    type=str,
+                    default="not_set", 
+                    help="Low medium high n unique samples")
 parser.add_argument('--fully_trained', 
                     dest='fully_trained', 
                     default=False, 
@@ -64,13 +74,16 @@ parser.add_argument('--train_path',
 parser.add_argument('--val_path',
                     type=Path,
                     )
- 
-args = parser.parse_args()
+parser.add_argument('--seed',
+                    type=int,
+                    default=42,
+                    )
+
 # Model options
 parser.add_argument('--hidden_size', 
                     type=int, 
                     default=64, 
-                    help='Number of hidden units in encoder / decoder')
+                    help='Number of hidden units in encoder and decoder')
 parser.add_argument('--layer_type', 
                     choices=['GGRU', 'GRNN', 'GLSTM'],
                     default='GRNN',
@@ -129,7 +142,11 @@ parser.add_argument('--save_freq',
                     type=int, 
                     default=200000, 
                     help='Frequency with which to save models during training')
+parser.add_argument('--wandb',
+                    type=str,
+                    )
 
+args = parser.parse_args()
 
 def evaluate(model_to_eval,
              inp_lang,
@@ -190,7 +207,7 @@ def test_accuracy(model_to_test, pairs):
     accuracies = []
     model.eval()
     with torch.no_grad():
-        for pair in pairs:
+        for pair in tqdm(pairs):
             input_tensor, output_tensor = pair
             model_output = model_to_test(input_tensor=input_tensor)
             accuracies.append(sentence_correct(output_tensor, model_output))
@@ -271,13 +288,29 @@ if __name__ == '__main__':
     testing_pairs = [tensors_from_pair(pair, equivariant_commands, equivariant_actions) 
                      for pair in test_pairs]
 
+    wandb_config = {
+            "val_path": str(args.val_path),
+            "seed": args.seed,
+            "layer_type": args.layer_type,
+            "equvariance": args.equivariance,
+            "attention": args.use_attention,
+            "bidirectional": args.bidirectional,
+            "learning_rate": args.learning_rate,
+            "iters": args.n_iters
+            }
+    wandb.init(project=args.wandb, config=wandb_config)
+
+
+
     # Compute accuracy and print some translation
     if args.compute_train_accuracy:
         train_acc = test_accuracy(model, training_eval)
         print("Model train accuracy: %s" % train_acc.item())
+        wandb.log({"train_acc": train_acc})
     if args.compute_test_accuracy:
         test_acc = test_accuracy(model, testing_pairs)
         print("Model test accuracy: %s" % test_acc.item())
+        wandb.log({"test_acc": test_acc})
     if args.print_param_nums:
         print("Model contains %s params" % model.num_params)
     for i in range(args.print_translations):
