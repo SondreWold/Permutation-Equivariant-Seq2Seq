@@ -5,10 +5,11 @@ import os
 
 import numpy as np
 import torch
+from pathlib import Path
 
 import perm_equivariant_seq2seq.utils as utils
 from perm_equivariant_seq2seq.equivariant_models import EquiSeq2Seq
-from perm_equivariant_seq2seq.data_utils import get_scan_split, get_equivariant_scan_languages
+from perm_equivariant_seq2seq.data_utils import read_custom_data, get_scan_split, get_equivariant_scan_languages
 from perm_equivariant_seq2seq.utils import tensors_from_pair, tensor_from_sentence
 from perm_equivariant_seq2seq.symmetry_groups import get_permutation_equivariance
 
@@ -57,6 +58,13 @@ parser.add_argument('--print_param_nums',
                     default=False, 
                     action='store_true',
                     help="Print the number of model parameters")
+parser.add_argument('--train_path',
+                    type=Path,
+                    )
+parser.add_argument('--val_path',
+                    type=Path,
+                    )
+ 
 args = parser.parse_args()
 # Model options
 parser.add_argument('--hidden_size', 
@@ -65,7 +73,7 @@ parser.add_argument('--hidden_size',
                     help='Number of hidden units in encoder / decoder')
 parser.add_argument('--layer_type', 
                     choices=['GGRU', 'GRNN', 'GLSTM'],
-                    default='GLSTM',
+                    default='GRNN',
                     help='Type of rnn layers to be used for recurrent components')
 parser.add_argument('--use_attention', 
                     dest='use_attention', 
@@ -208,7 +216,10 @@ if __name__ == '__main__':
     experiment_arguments = utils.load_args_from_txt(parser, args_path)
 
     # Load data
-    train_pairs, test_pairs = get_scan_split(split=experiment_arguments.split)
+    if args.train_path and args.val_path:
+        train_pairs, test_pairs = read_custom_data(args.train_path, args.val_path)
+    else:
+        train_pairs, test_pairs = get_scan_split(split=experiment_arguments.split)
     if experiment_arguments.equivariance == 'verb':
         in_equivariances = ['jump', 'run', 'walk', 'look']
         out_equivariances = ['JUMP', 'RUN', 'WALK', 'LOOK']

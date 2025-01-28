@@ -93,6 +93,12 @@ def get_scan_split(split=None):
     return training_pairs, test_pairs
 
 
+def read_custom_data(train_path: str, val_path: str):
+    training_pairs = read_scan_data(train_path)
+    test_pairs = read_scan_data(val_path)
+    return training_pairs, test_pairs
+
+
 if __name__ == '__main__':
     VERB_INVARIANCE = LanguageInvariance(['jump', 'run', 'walk', 'look'], 'verb')
     DIRECTION_INVARIANCE = LanguageInvariance(['right', 'left'], 'direction')

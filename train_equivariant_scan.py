@@ -5,10 +5,12 @@ import os
 
 import torch
 import torch.nn as nn
+from pathlib import Path
+    import numpy as np
 
 import perm_equivariant_seq2seq.utils as utils
 from perm_equivariant_seq2seq.equivariant_models import EquiSeq2Seq
-from perm_equivariant_seq2seq.data_utils import get_scan_split, get_equivariant_scan_languages
+from perm_equivariant_seq2seq.data_utils import read_custom_data, get_scan_split, get_equivariant_scan_languages
 from perm_equivariant_seq2seq.utils import tensors_from_pair
 from perm_equivariant_seq2seq.symmetry_groups import get_permutation_equivariance
 
@@ -34,7 +36,7 @@ parser.add_argument('--hidden_size',
                     help='Number of hidden units in encoder / decoder')
 parser.add_argument('--layer_type', 
                     choices=['GGRU', 'GRNN', 'GLSTM'], 
-                    default='GLSTM',
+                    default='GRNN',
                     help='Type of rnn layers to be used for recurrent components')
 parser.add_argument('--use_attention', 
                     dest='use_attention', 
@@ -69,8 +71,12 @@ parser.add_argument('--validation_size',
                     help='Validation proportion to use for early-stopping')
 parser.add_argument('--n_iters', 
                     type=int, 
-                    default=200000, 
+                    default=2000, 
                     help='number of training iterations')
+parser.add_argument('--seed',
+                    type=int,
+                    default=42,
+                    )
 parser.add_argument('--learning_rate', 
                     type=float, 
                     default=1e-4, 
@@ -90,10 +96,22 @@ parser.add_argument('--save_freq',
                     type=int, 
                     default=200000, 
                     help='Frequency with which to save models during training')
+parser.add_argument('--train_path',
+                    type=Path,
+                    )
+parser.add_argument('--val_path',
+                    type=Path,
+                    )
+ 
 args = parser.parse_args()
 
+if args.train_path and args.val_path:
+    save_str = str(args.train_path.stem)
+else:
+    save_str = args.split
+
 args.save_path = os.path.join(args.save_dir,
-                              '%s' % args.split,
+                              '%s' % save_str,
                               'rnn_%s_hidden_%s_directions_%s' % (
                                   args.layer_type, 
                                   args.hidden_size, 
@@ -214,8 +232,14 @@ def test_accuracy(model_to_test, pairs):
 
 
 if __name__ == '__main__':
+    torch.manual_seed(args.seed)
+    random.seed(args.seed)
+    np.seed(args.seed)
     # Load data
-    train_pairs, test_pairs = get_scan_split(split=args.split)
+    if args.train_path and args.val_path:
+        train_pairs, test_pairs = read_custom_data(args.train_path, args.val_path)
+    else:
+        train_pairs, test_pairs = get_scan_split(split=args.split)
     if args.equivariance == 'verb':
         in_equivariances = ['jump', 'run', 'walk', 'look']
         out_equivariances = ['JUMP', 'RUN', 'WALK', 'LOOK']
