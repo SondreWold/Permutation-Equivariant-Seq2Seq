@@ -100,7 +100,7 @@ class EquivariantLanguage(Language):
 
 
 # Define SCAN language invariances
-VERB_INVARIANCE = LanguageInvariance(['jump', 'run', 'walk', 'look'], 'verb')
+VERB_INVARIANCE = LanguageInvariance(['jump', 'run', 'walk', 'look', 'sprint', 'crawl', 'lunge', 'squat'], 'verb')
 DIRECTION_INVARIANCE = LanguageInvariance(['right', 'left'], 'direction')
 CONJUNCTION_INVARIANCE = LanguageInvariance(['and', 'after'], 'conjunction')
 ADVERB_INVARIANCE = LanguageInvariance(['once', 'twice', 'thrice'], 'adverb')
